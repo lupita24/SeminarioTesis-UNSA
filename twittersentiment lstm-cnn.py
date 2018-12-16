@@ -15,17 +15,19 @@ def log(*string, **kwargs):
         print output
     LOG_FILE.write(''.join(['\n', output]))
 
-
+#pesos de la red neuronal
 def weight_variable(shape, name):
     var = tf.truncated_normal(shape, stddev=0.1)
     return tf.Variable(var, name=name)
 
+#pesos del bias
 def bias_variable(shape, name):
     var = tf.constant(0.1, shape=shape)
     return tf.Variable(var, name=name)
 
-def human_readable_output(a_batch):
-    log('Network output on random data...')
+#Evaluar los datos de prueba
+def evaluate_datatest(a_batch):
+    log('Network output with test data')
     sentences = zip(*a_batch)[0]
     word_sentence = []
     network_result = sess.run(tf.argmax(network_out, 1),
@@ -33,89 +35,64 @@ def human_readable_output(a_batch):
                                          dropout_keep_prob: 1.0})
     actual_result = sess.run(tf.argmax(data_out, 1),
                              feed_dict={data_out: zip(*a_batch)[1]})
-    # Translate the string to ASCII (remove <PAD/> symbols)
+    cont_correct = 0;
     for s in sentences:
         output = ''
         for w in s:
             output += vocabulary_inv[w.astype(np.int)][0] + ' '
         output = output.translate(None, '<PAD/>')
         word_sentence.append(output)        
-    # Output the network result
     for idx, item in enumerate(network_result, start=0):
         network_sentiment = 'POS' if item == 1 else 'NEG'
         actual_sentiment = 'POS' if actual_result[idx] == 1 else 'NEG'
         if item == actual_result[idx]:
-            status = '\033[92mCORRECT\033[0m'
+            status = '\033[92mCORRECTO\033[0m'
+            cont_correct = cont_correct+1
         else:
-            status = '\033[91mWRONG\033[0m'
+            status = '\033[91mINCORRECTO\033[0m'
+        log('\n%s\nEtiqueta: %s - Salida %s | %s' %
+        (word_sentence[idx], actual_sentiment, network_sentiment, status))
+    acc_test = (cont_correct*100.0)/FLAGS.batch_size
+    print('Precision :'+str(acc_test)+'%')
 
-        log('\n%s\nLABEL: %s - OUTPUT %s | %s | %f' % 
-            (word_sentence[idx], actual_sentiment, network_sentiment, status,actual_result[idx]))
 
-
-def evaluate_sentence(sentence, vocabulary):
-    """
-    Translates a string to its equivalent in the integer vocabulary and feeds it
-    to the network.
-    Outputs result to stdout.
-    """
- #   f=open(sentence,'r')
-#    saver=open('resultados.txt','a')
-  #  for linea in f.readlines(): 
-        
-    x_to_eval = string_to_int(sentence, vocabulary, max(len(_) for _ in x))
-    result = sess.run(tf.argmax(network_out, 1),
-                      feed_dict={data_in: x_to_eval,
-                                 dropout_keep_prob: 1.0})
-    unnorm_result = sess.run(network_out, feed_dict={data_in: x_to_eval,
-                                                     dropout_keep_prob: 1.0})
-    network_sentiment = 'POS' if result == 1 else 'NEG'
-    log('Custom input evaluation:', network_sentiment)
-#        saver.write('\n'+str(unnorm_result[0]))    
-    log('Actual output:', str(unnorm_result[0]))
-#    f.close()
 
 # Hyperparameters
 tf.flags.DEFINE_boolean('train', False,
-                        'Train the network (default: False)')
+                        'Entrenar la red neuronal (default: False)')
 tf.flags.DEFINE_boolean('save', False,
-                        'Save session checkpoints (default: False)')
-tf.flags.DEFINE_boolean('save_protobuf', False,
-                        'save model as binary protobuf (default: False)')
-tf.flags.DEFINE_boolean('evaluate_batch', False,
-                        'Evaluate the network on a held-out batch from the '
-                        'dataset and print the results (for '
-                        'debugging/educational purposes)')
+                        'Guardar los chekpoints (default: False)')
+tf.flags.DEFINE_boolean('evaluate_data', False,
+                        'Evaluar la red con los datos de prueba'
+                        'calcular la precision e imprimir los results')
 tf.flags.DEFINE_string('load',None,
-                       'Restore a model from the given path.')
+                       'Cargar la red neuronal entrenada')
 tf.flags.DEFINE_string('device', 'cpu',
                        'Device to use (can be either \'cpu\' or \'gpu\').')
-tf.flags.DEFINE_string('custom_input', '',
-                       'Evaluate the model on the given string.')
 tf.flags.DEFINE_string('filter_sizes', '3,4,5',
-                       'Comma-separated filter sizes for the convolution layer '
+                       'Comma-separated el dimension de los filtros '
                        '(default: \'3,4,5\')')
 tf.flags.DEFINE_integer('embedding_size', 128,
-                        'Size of the word embeddings (default: 128)')
+                        'Dimension delword embeddings (default: 128)')
 tf.flags.DEFINE_integer('num_filters', 128,
-                        'Number of filters per filter size (default: 128)')
-tf.flags.DEFINE_integer('batch_size', 128, 'Batch size (default: 128)')
-tf.flags.DEFINE_integer('epochs', 3, 'Number of training epochs (default: 3)')
+                        'Numero de filtro (default: 128)')
+tf.flags.DEFINE_integer('batch_size', 1899, 'Batch size (default: 128)')
+tf.flags.DEFINE_integer('epochs', 3, 'Numero de etapas en entrenar (default: 3)')
 tf.flags.DEFINE_integer('valid_freq', 1,
-                        'Check model accuracy on validation set '
+                        'Valida la precision de la red en training'
                         '[VALIDATION_FREQ] times per epoch (default: 1)')
 tf.flags.DEFINE_integer('checkpoint_freq', 1,
-                        'Save model [CHECKPOINT_FREQ] times per epoch '
+                        'Guarda el modelo CHECKPOINT_FREQ cada epoch'
                         '(default: 1)')
 tf.flags.DEFINE_float('dataset_fraction', 1.0,
-                      'Fraction of the dataset to load in memory, to reduce '
-                      'memory usage (default: 1.0; uses all dataset)')
-tf.flags.DEFINE_float('test_data_ratio', 0.2,
-                      'Fraction of the dataset to use for validation (default: '
+                      'Tamanio del conjunto de datos utilizado '
+                      'memory usage (default: 1.0; toda la dataset)')
+tf.flags.DEFINE_float('test_data_ratio', 0.1,
+                      'dataset utilizada para la evaluacion(default: '
                       '0.1)')
 FLAGS = tf.flags.FLAGS
 
-# File paths
+# Archivos
 OUT_DIR = os.path.abspath(os.path.join(os.path.curdir, 'output'))
 RUN_ID = time.strftime('run%Y%m%d-%H%M%S')
 RUN_DIR = os.path.abspath(os.path.join(OUT_DIR, RUN_ID))
@@ -129,24 +106,22 @@ SUMMARY_DIR = os.path.join(RUN_DIR, 'summaries')
 LOG_FILE = open(LOG_FILE_PATH, 'a', 0)
 
 
-log('======================= Analisis de sentimiento  LSTM-CNN ========================')
-# Load data
+log('================ Analisis de sentimiento  LSTM-CNN ====================')
+# Cargar data
 x, y, vocabulary, vocabulary_inv = load_data(FLAGS.dataset_fraction)
 
 
-# Randomly shuffle data
 np.random.seed(123)
+x_text_size = 1988
 shuffle_indices = np.random.permutation(np.arange(len(y)))
 x_shuffled = x[shuffle_indices]
 y_shuffled = y[shuffle_indices]
-
-# Split train/test set
 text_percent = FLAGS.test_data_ratio
 test_index = int(len(x) * text_percent)
 x_train, x_test = x_shuffled[:-test_index], x_shuffled[-test_index:]
 y_train, y_test = y_shuffled[:-test_index], y_shuffled[-test_index:]
 
-# Parameters
+# Parametros
 sequence_length = x_train.shape[1]
 num_classes = y_train.shape[1]
 vocab_size = len(vocabulary)
@@ -154,23 +129,18 @@ filter_sizes = map(int, FLAGS.filter_sizes.split(','))
 validate_every = len(y_train) / (FLAGS.batch_size * FLAGS.valid_freq)
 checkpoint_every = len(y_train) / (FLAGS.batch_size * FLAGS.checkpoint_freq)
 
-# Set computation device
+
 if FLAGS.device == 'gpu':
     device = '/gpu:0'
 else:
     device = '/cpu:0'
 
-#Log run data
-log('\nFlags:')
-for attr, value in sorted(FLAGS.__flags.iteritems()):
-    log('\t%s = %s' % (attr, value._value))
 log('\nDataset:')
-log('\tTrain set size = %d\n'
-    '\tTest set size = %d\n'
-    '\tVocabulary size = %d\n'
-    '\tInput layer size = %d\n'
-    '\tNumber of classes = %d' %
-    (len(y_train), len(y_test), len(vocabulary), sequence_length, num_classes))
+log('\tTrain set = %d\n'
+    '\tTest set = %d\n'
+    '\tVocabulario size = %d\n'
+    '\tNumero de clases = %d' %
+    (len(y_train), x_text_size, len(vocabulary), num_classes))
 log('\nOutput folder:', RUN_DIR)
 
 # Session
@@ -178,12 +148,13 @@ sess = tf.InteractiveSession()
 
 
 with tf.device(device):
-    # Placeholders
     data_in = tf.placeholder(tf.int32, [None, sequence_length], name='data_in')
     data_out = tf.placeholder(tf.float32, [None, num_classes], name='data_out')
     dropout_keep_prob = tf.placeholder(tf.float32, name='dropout_keep_prob')
+
     # Stores the accuracy of the model for each batch of the validation testing
     valid_accuracies = tf.placeholder(tf.float32)
+
     # Stores the loss of the model for each batch of the validation testing
     valid_losses = tf.placeholder(tf.float32)
 
@@ -193,12 +164,9 @@ with tf.device(device):
                                           -1.0, 1.0),
                         name='embedding_matrix')
         embedded_chars = tf.nn.embedding_lookup(W, data_in)
-       # embedded_chars_expanded = tf.expand_dims(embedded_chars, -1)
     #LSTM Layer
     lstm_cell = tf.contrib.rnn.LSTMCell(128,state_is_tuple=True)
-        #self.h_drop_exp = tf.expand_dims(self.h_drop,-1)
     lstm_out,lstm_state = tf.nn.dynamic_rnn(lstm_cell,embedded_chars,dtype=tf.float32)
-        #embed()
     lstm_out_expanded = tf.expand_dims(lstm_out, -1)
     # Convolution + ReLU + Pooling layer
     pooled_outputs = []
@@ -258,17 +226,13 @@ with tf.device(device):
 
 # Init session
 if FLAGS.load is not None:
-    
     log('Data processing OK, loading network...')
+    saver = tf.train.Saver()
     try:
-        log('restore')
-        saver = tf.train.import_meta_graph('/output/run20181205-182247ckpt.ckpt.meta')
-        sess = tf.Session()
-        log('restauro')
-        saver.restore(sess, "/output/run20181205-182247")
+        saver.restore(sess, CHECKPOINT_FILE_PATH)
     except:
         log('Couldn\'t restore the session properly, falling back to default '
-         'initialization.')
+            'initialization.')
         sess.run(tf.global_variables_initializer())
 else:
     log('Data processing OK, creating network...')
@@ -277,8 +241,7 @@ else:
 # Summaries for loss and accuracy
 loss_summary = tf.summary.scalar('Training loss', cross_entropy)
 valid_loss_summary = tf.summary.scalar('Validation loss', valid_mean_loss)
-valid_accuracy_summary = tf.summary.scalar('Validation accuracy',
-                                           valid_mean_accuracy)
+valid_accuracy_summary = tf.summary.scalar('Validation accuracy',valid_mean_accuracy)
 summary_writer = tf.summary.FileWriter(SUMMARY_DIR, sess.graph)
 tf.summary.merge_all()
 
@@ -287,7 +250,7 @@ if FLAGS.train:
     # Batches
     batches = batch_iter(zip(x_train, y_train), FLAGS.batch_size, FLAGS.epochs)
     test_batches = list(batch_iter(zip(x_test, y_test), FLAGS.batch_size, 1))
-    my_batch = batches.next()  # To use with human_readable_output()
+    my_batch = batches.next()  # To use with evaluate_datatest()
 
     # Pretty-printing variables
     global_step = 0
@@ -369,7 +332,7 @@ if FLAGS.train:
             sess.run(tf.global_variables_initializer())
             saver.save(sess, CHECKPOINT_FILE_PATH)
 
-    # Final validation testing
+    # Final train
     accuracies = []
     losses = []
     for test_batch in test_batches:
@@ -394,31 +357,15 @@ if FLAGS.train:
     summary_writer.add_summary(accuracy_summary_result, global_step)
     summary_writer.add_summary(loss_summary_result, global_step)
 
-# Evaluate custom input
-if FLAGS.custom_input != '':
-    log('Evaluating custom input:', FLAGS.custom_input)
-    evaluate_sentence(FLAGS.custom_input, vocabulary)
-
-# Evaluate held-out batch
-if FLAGS.evaluate_batch:
+# Evaluar
+if FLAGS.evaluate_data:
     if not FLAGS.train:
         _batches = list(batch_iter(zip(x_test, y_test), FLAGS.batch_size, 1))
         my_batch = _batches[randint(0, len(_batches))]
-    human_readable_output(my_batch)
+    evaluate_datatest(my_batch)
 
-# Save final checkpoint
+# Guardar los checkpoints
 if FLAGS.save:
-    log('Saving checkpoint...')
-    saver = tf.train.Saver()
-    saver.save(sess, CHECKPOINT_FILE_PATH)
-
-# Save as binary Protobuffer
-if FLAGS.save_protobuf:
-    log('Saving Protobuf...')
-    minimal_graph = convert_variables_to_constants(sess,
-                                                   sess.graph_def,
-                                                   ['output/Softmax'])
-    tf.train.write_graph(minimal_graph, RUN_DIR, 'minimal_graph.proto',
-                         as_text=False)
-    tf.train.write_graph(minimal_graph, RUN_DIR, 'minimal_graph.txt',
-                         as_text=True)
+   log('Saving checkpoint...')
+   saver = tf.train.Saver()
+   saver.save(sess, CHECKPOINT_FILE_PATH)
