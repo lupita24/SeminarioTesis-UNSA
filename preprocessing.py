@@ -4,15 +4,15 @@ import re
 
 
 def parse_with_lxml():
-    tree = ET.parse('test.xml')
+    tree = ET.parse('data.xml')
     root = tree.getroot()
     f = open ("limpiotest.txt","w")
     for content in root.findall('tweet'):
         cont = content.find('content').text
         C2 = cont.encode('utf8')
-       # for pola in content.findall('sentiment'):
-        #    for value in pola.findall("./polarity/value"):
-         #       f.write(value.text + " ")
+        for pola in content.findall('sentiment'):
+            for value in pola.findall("./polarity/value"):
+                f.write(value.text + " ")
         f.write(C2)
     f.close()
 
@@ -67,11 +67,11 @@ def clasificar_tweet():
 def parser_tweets_pos():
     cont = 0
 
-    pos = open("tweets.pos", "r")
-    pos_tweet = open("tweets_pos.pos","w")
+    pos = open("tweets/tweets.pos", "r")
+    pos_tweet = open("tweets/tweets_pos.pos","w")
     i = 0.0
 
-    while  i < 322:
+    while  i < 21361:
         linea = pos.readline()
         print(linea)
         new_tweet = ''
@@ -80,15 +80,48 @@ def parser_tweets_pos():
             # String preprocessing
             if re.match('^.*@.*', word):
                 word = '<NAME/>'
+            if re.match('^.*PORQUE.*', word):
+                word = 'porque'
+            if re.match('^.*JAJA.*', word):
+                word = ' JA '
             if re.match('^.*http//.*', word):
                 word = '<LINK/>'
             if re.match('^.*https//.*', word):
-                    word = '<LINK/>'
+                word = '<LINK/>'
             word = word.replace('#', '<HASHTAG/> ')
             word = word.replace('&quot;', ' \" ')
             word = word.replace('&amp;', ' & ')
             word = word.replace('&gt;', ' > ')
             word = word.replace('&lt;', ' < ')
+            word = word.replace(",", " , ")
+            word = word.replace("!", " ! ")
+            word = word.replace("\"", " ")
+            word = word.replace("\(", " \( ")
+            word = word.replace("\)", " \) ")
+            word = word.replace("\?", " \? ")
+            word = word.replace("???", "?")
+            word = word.replace("??", "?")
+            word = word.replace(" dl "," del ")
+            word = word.replace("[^A-Za-z0-9(),!?\'\`]", " ")
+            word = word.replace(" d "," de ")
+            word = word.replace(" x "," por ")
+            word = word.replace(" xq "," porque ")
+            word = word.replace(" q "," que ")
+            word = word.replace(" n "," no ")
+            word = word.replace(" l "," la ")
+            word = word.replace(";-)"," feliz ")
+            word = word.replace(":-)"," feliz ")
+            word = word.replace(";)"," feliz ")
+            word = word.replace(":D"," sonriente ")
+            word = word.replace(":(" ," triste ")
+            word = word.replace(":)"," feliz ")
+            word = word.replace(";)"," feliz ")
+            word = word.replace(":*"," beso ")
+            word = word.replace(":/"," confundido ")
+            word = word.replace(":3"," santo ")
+            word = word.replace(":p"," jugueton ")
+            word = word.replace("aaaa", "a")
+            word = word.strip().lower()
             new_tweet = ' '.join([new_tweet, word])
         linea = new_tweet.strip() + '\n'
         pos_tweet.write(linea)
@@ -100,11 +133,11 @@ def parser_tweets_pos():
 def parser_tweets_neg():
     cont = 0
 
-    neg = open("tweets.neg", "r")
-    neg_tweet = open("tweets_neg.neg","w")
+    neg = open("tweets/tweets.neg", "r")
+    neg_tweet = open("tweets/tweets_neg.neg","w")
     i = 0.0
 
-    while  i < 551:
+    while  i < 122215:
         linea = neg.readline()
         print(linea)
         new_tweet = ''
@@ -113,6 +146,10 @@ def parser_tweets_neg():
             # String preprocessing
             if re.match('^.*@.*', word):
                 word = '<NAME/>'
+            if re.match('^.*PORQUE.*', word):
+                word = 'porque'
+            if re.match('^.*JAJA.*', word):
+                word = ' JA '
             if re.match('^.*http//.*', word):
                 word = '<LINK/>'
             if re.match('^.*https//.*', word):
@@ -122,6 +159,35 @@ def parser_tweets_neg():
             word = word.replace('&amp;', ' & ')
             word = word.replace('&gt;', ' > ')
             word = word.replace('&lt;', ' < ')
+            word = word.replace(",", " , ")
+            word = word.replace("!", " ! ")
+            word = word.replace("\"", " ")
+            word = word.replace("\(", " \( ")
+            word = word.replace("\)", " \) ")
+            word = word.replace("\?", " \? ")
+            word = word.replace("???", "?")
+            word = word.replace("??", "?")
+            word = word.replace(" dl "," del ")
+            word = word.replace("[^A-Za-z0-9(),!?\'\`]", " ")
+            word = word.replace(" d "," de ")
+            word = word.replace(" x "," por ")
+            word = word.replace(" xq "," porque ")
+            word = word.replace(" q "," que ")
+            word = word.replace(" n "," no ")
+            word = word.replace(" l "," la ")
+            word = word.replace(";-)"," feliz ")
+            word = word.replace(":-)"," feliz ")
+            word = word.replace(";)"," feliz ")
+            word = word.replace(":D"," sonriente ")
+            word = word.replace(":(" ," triste ")
+            word = word.replace(":)"," feliz ")
+            word = word.replace(";)"," feliz ")
+            word = word.replace(":*"," beso ")
+            word = word.replace(":/"," confundido ")
+            word = word.replace(":3"," santo ")
+            word = word.replace(":p"," jugueton ")
+            word = word.replace("aaaa", "a")
+            word = word.strip().lower()
             new_tweet = ' '.join([new_tweet, word])
         linea = new_tweet.strip() + '\n'
         neg_tweet.write(linea)
@@ -164,7 +230,7 @@ def parser_tweets_test():
     pos_tweet.close()
 
 if __name__ == '__main__':
-# parse_with_lxml()  
-#clasificar_tweet()
-    parser_tweets_test()
- #   parser_tweets_pos()
+    parse_with_lxml()  
+    clasificar_tweet()
+    parser_tweets_neg()
+    parser_tweets_pos()
